@@ -117,6 +117,10 @@ contract EventFlowTicket is
         return idToListedTicket[_tokenId];
     }
 
+    function getALlTickets() public view returns (ListedTicket[] memory) {
+        return allListedTickets;
+    }
+
     //safe mint private function
     function safeMint(address to, string memory uri) private onlyOwner {
         uint256 tokenId = _tokenIdCounter.current();
