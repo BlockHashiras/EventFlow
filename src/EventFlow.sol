@@ -46,7 +46,7 @@ contract EventFlowTicket is
 
     error InvalidPurchasePrice(string);
 
-    //create token
+    //create ticket
     function createTicket(
         string memory eventTitle,
         string memory eventDescription,
