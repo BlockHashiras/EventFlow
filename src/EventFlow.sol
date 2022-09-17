@@ -47,6 +47,9 @@ contract EventFlowTicket is
     error InvalidPurchasePrice(string);
 
     //create ticket
+    //to add - pass in ticket owner as an argument so we can use
+    //it in our factory contract
+    //optional - add button for ticket owner to delete ticket
     function createTicket(
         string memory eventTitle,
         string memory eventDescription,
