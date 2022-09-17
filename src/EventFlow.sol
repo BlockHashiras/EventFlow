@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-
 contract EventFlowTicket is
     ERC721,
     ERC721Enumerable,
@@ -22,11 +21,37 @@ contract EventFlowTicket is
     //when another users executes sale based on ticket tokenID,
     // they pay ticket price if any and the ticket gets minted to them
 
+    // address _ticketAdmin;
+    // string _eventTitle;
+    // string _eventDescription;
+    // string _eventLocation;
+    // string _ticketURI;
+    // uint256 _eventDate;
+    // uint256 _ticketPrice;
+
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
 
-    constructor() ERC721("EventFlow Ticket", "ETicket") {}
+    constructor(
+        address ticketAdmin_,
+        string memory eventTitle_,
+        string memory eventDescription_,
+        string memory eventLocation_,
+        string memory ticketURI_,
+        uint256 eventDate_,
+        uint256 ticketPrice_
+    ) ERC721("EventFlow Ticket", "ETicket") {
+        createTicket(
+            ticketAdmin_,
+            eventTitle_,
+            eventDescription_,
+            eventLocation_,
+            ticketURI_,
+            eventDate_,
+            ticketPrice_
+        );
+    }
 
     struct ListedTicket {
         address OwnerOfTicket;
@@ -51,13 +76,14 @@ contract EventFlowTicket is
     //it in our factory contract
     //optional - add button for ticket owner to delete ticket
     function createTicket(
+        address ticketOwner,
         string memory eventTitle,
         string memory eventDescription,
         string memory eventLocation,
         string memory ticketURI,
         uint256 eventDate,
         uint256 ticketPrice
-    ) public payable returns (uint256) {
+    ) internal returns (uint256) {
         _tokenIdCounter.increment();
         uint256 tokenId = _tokenIdCounter.current();
         uint256 newEventDate = block.timestamp + (eventDate);
@@ -66,7 +92,7 @@ contract EventFlowTicket is
         _transfer(msg.sender, address(this), tokenId);
 
         idToListedTicket[tokenId] = ListedTicket(
-            msg.sender,
+            ticketOwner,
             eventTitle,
             eventDescription,
             eventLocation,
