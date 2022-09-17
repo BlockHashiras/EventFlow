@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
+import "node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
-import "@openzeppelin/contracts@4.7.3/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts@4.7.3/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts@4.7.3/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts@4.7.3/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts@4.7.3/access/Ownable.sol";
-import "@openzeppelin/contracts@4.7.3/utils/Counters.sol";
 
 contract EventFlowTicket is
     ERC721,
@@ -16,7 +16,7 @@ contract EventFlowTicket is
     Ownable
 {
     //create ticket based on the ticket struct
-    //on creation ticket's gets minted to msg.sender and then tranfered in same
+    //on creation ticket's gets minted to msg.sender and then transferred in same
     // function to this contract, so we can sell tickets on their behalf
 
     //when another users executes sale based on ticket tokenID,
