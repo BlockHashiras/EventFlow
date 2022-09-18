@@ -63,6 +63,7 @@ contract EventFlowTicket is
         uint256 EventDate;
         uint256 TicketPrice;
         uint256 NumberOfSale;
+        uint256 totalAmountGottenFromSale;
         bool isCurrentlyListed;
     }
 
@@ -101,6 +102,7 @@ contract EventFlowTicket is
             newEventDate,
             newTicketPrice,
             0,
+            0,
             true
         );
 
@@ -113,6 +115,7 @@ contract EventFlowTicket is
                 ticketURI,
                 eventDate,
                 newTicketPrice,
+                0,
                 0,
                 true
             )
@@ -135,6 +138,7 @@ contract EventFlowTicket is
             );
         }
         idToListedTicket[_tokenId].NumberOfSale += 1;
+        idToListedTicket[_tokenId].totalAmountGottenFromSale += msg.value;
         payable(seller).transfer(msg.value);
         safeMint(msg.sender, ticketURI);
     }
@@ -152,7 +156,7 @@ contract EventFlowTicket is
     }
 
     //safe mint private function
-    function safeMint(address to, string memory uri) private onlyOwner {
+    function safeMint(address to, string memory uri) private  {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(to, tokenId);

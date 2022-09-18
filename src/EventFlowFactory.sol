@@ -5,7 +5,7 @@ import "./EventFlow.sol";
 contract EventFlowFactory {
     //aim of the factory contract is to create a new instance of EventFLow every time
     //our user clicks the create button
-    //
+    //users should be able to interact with all the functions in
     EventFlowTicket[] eventFlowTickets;
 
     function createEventFlowClone(
