@@ -3,6 +3,9 @@ pragma solidity 0.8.17;
 import "./EventFlow.sol";
 
 contract EventFlowFactory {
+    //aim of the factory contract is to create a new instance of EventFLow every time
+    //our user clicks the create button
+    //
     EventFlowTicket[] eventFlowTickets;
 
     function createEventFlowClone(
@@ -12,8 +15,8 @@ contract EventFlowFactory {
         string memory ticketURI,
         uint256 eventDate,
         uint256 ticketPrice
-    ) public returns (bool success) {
-        EventFlowTicket eventFlow = new EventFlowTicket(
+    ) public returns (bool success, EventFlowTicket eventFlow) {
+        eventFlow = new EventFlowTicket(
             msg.sender,
             eventTitle,
             eventDescription,
@@ -23,5 +26,10 @@ contract EventFlowFactory {
             ticketPrice
         );
         eventFlowTickets.push(eventFlow);
+        return (success = true, eventFlow);
+    }
+
+    function getEventTicketCount() external view returns (uint256) {
+        return eventFlowTickets.length;
     }
 }
