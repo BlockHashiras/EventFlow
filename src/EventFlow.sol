@@ -21,40 +21,14 @@ contract EventFlowTicket is
 
     //when another users executes sale based on ticket tokenID,
     // they pay ticket price if any and the ticket gets minted to them
-
-    // address _ticketAdmin;
-    // string _eventTitle;
-    // string _eventDescription;
-    // string _eventLocation;
-    // string _ticketURI;
-    // uint256 _eventDate;
-    // uint256 _ticketPrice;
-
+    address private owner_;
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
 
-    constructor(
-        address ticketAdmin_,
-        string memory eventTitle_,
-        string memory eventDescription_,
-        string memory eventLocation_,
-        string memory ticketURI_,
-        uint256 eventDate_,
-        uint256 ticketPrice_
-    ) ERC721("EventFlow Ticket", "ETicket") {
-        createTicket(
-            ticketAdmin_,
-            eventTitle_,
-            eventDescription_,
-            eventLocation_,
-            ticketURI_,
-            eventDate_,
-            ticketPrice_
-        );
-    }
+    constructor() ERC721("EventFlow Ticket", "ETicket") {}
 
-    struct ListedTicket {
+    struct ListedEvent {
         address OwnerOfTicket;
         string EventTitle;
         string EventDescription;
@@ -63,37 +37,37 @@ contract EventFlowTicket is
         uint256 EventDate;
         uint256 TicketPrice;
         uint256 NumberOfSale;
+        uint256 totalAmountGottenFromSale;
         bool isCurrentlyListed;
     }
 
-    mapping(uint256 => ListedTicket) idToListedTicket;
+    mapping(uint256 => ListedEvent) idToListedEvent;
 
-    ListedTicket[] allListedTickets;
+    ListedEvent[] allListedEvents;
 
     error InvalidPurchasePrice(string);
+    error IncompleteWithdrawCriteria(string);
 
     //create ticket
     //to add - pass in ticket owner as an argument so we can use
     //it in our factory contract
     //optional - add button for ticket owner to delete ticket
-    function createTicket(
-        address ticketOwner,
+    function createEvent(
         string memory eventTitle,
         string memory eventDescription,
         string memory eventLocation,
         string memory ticketURI,
         uint256 eventDate,
         uint256 ticketPrice
-    ) internal returns (uint256) {
-        _tokenIdCounter.increment();
+    ) public returns (uint256) {
         uint256 tokenId = _tokenIdCounter.current();
         uint256 newEventDate = block.timestamp + (eventDate);
         uint256 newTicketPrice = ticketPrice * 1 ether;
         safeMint(msg.sender, ticketURI);
         _transfer(msg.sender, address(this), tokenId);
 
-        idToListedTicket[tokenId] = ListedTicket(
-            ticketOwner,
+        idToListedEvent[tokenId] = ListedEvent(
+            msg.sender,
             eventTitle,
             eventDescription,
             eventLocation,
@@ -101,11 +75,12 @@ contract EventFlowTicket is
             newEventDate,
             newTicketPrice,
             0,
+            0,
             true
         );
 
-        allListedTickets.push(
-            ListedTicket(
+        allListedEvents.push(
+            ListedEvent(
                 msg.sender,
                 eventTitle,
                 eventDescription,
@@ -114,49 +89,86 @@ contract EventFlowTicket is
                 eventDate,
                 newTicketPrice,
                 0,
+                0,
                 true
             )
         );
         return tokenId;
     }
 
-    function buyTicket(uint256 _tokenId) public payable {
-        uint256 price = idToListedTicket[_tokenId].TicketPrice;
-        uint256 eventDate = idToListedTicket[_tokenId].EventDate;
-        address seller = idToListedTicket[_tokenId].OwnerOfTicket;
-        string memory ticketURI = idToListedTicket[_tokenId].TicketURI;
-
-        require(seller != address(0), "Error: Invalid Ticket");
-        require(block.timestamp < eventDate, "Error: Ticket expired");
+    function buyEventTicket(uint256 _tokenId) public payable {
+        uint256 price = idToListedEvent[_tokenId].TicketPrice;
+        uint256 eventDate = idToListedEvent[_tokenId].EventDate;
+        address seller = idToListedEvent[_tokenId].OwnerOfTicket;
+        string memory ticketURI = idToListedEvent[_tokenId].TicketURI;
 
         if (msg.value != price) {
             revert InvalidPurchasePrice(
                 "Error: Please submit the asking price in order to complete ticket purchase"
             );
         }
-        idToListedTicket[_tokenId].NumberOfSale += 1;
-        payable(seller).transfer(msg.value);
+        require(seller != address(0), "Error: Invalid Ticket");
+        require(block.timestamp < eventDate, "Error: Ticket expired");
+        allListedEvents[_tokenId].NumberOfSale += 1;
+        allListedEvents[_tokenId].totalAmountGottenFromSale += msg.value;
+        idToListedEvent[_tokenId].NumberOfSale += 1;
+        idToListedEvent[_tokenId].totalAmountGottenFromSale += msg.value;
         safeMint(msg.sender, ticketURI);
     }
 
-    function getOneTicket(uint256 _tokenId)
+    //function for event creators to withdraw amount gotten from their ticket sale
+    function withdrawAmountFromTicketSale(uint256 _tokenId)
         public
-        view
-        returns (ListedTicket memory)
+        returns (
+            string memory,
+            uint256,
+            uint256
+        )
     {
-        return idToListedTicket[_tokenId];
+        address eventCreator = idToListedEvent[_tokenId].OwnerOfTicket;
+        uint256 amount = idToListedEvent[_tokenId].totalAmountGottenFromSale;
+        require(eventCreator != address(0), "Error: Invalid Ticket");
+        require(msg.sender == eventCreator, "Not event owner");
+        require(amount > 0, "Error: No ticket sale yet, nothing to withdraw");
+
+        (uint256 eventListingFee, uint256 remainingBalance) = getFeePercentage(
+            amount
+        );
+        payable(eventCreator).transfer(remainingBalance);
+        payable(owner_).transfer(eventListingFee);
+        return ("amount sent", eventListingFee, remainingBalance);
     }
 
-    function getALlTickets() public view returns (ListedTicket[] memory) {
-        return allListedTickets;
+    function getOneEvent(uint256 _tokenId)
+        public
+        view
+        returns (ListedEvent memory)
+    {
+        return idToListedEvent[_tokenId];
+    }
+
+    function getAllEvents() public view returns (ListedEvent[] memory) {
+        return allListedEvents;
     }
 
     //safe mint private function
-    function safeMint(address to, string memory uri) private onlyOwner {
+    //helper function that mints tickets to user on ticket purchase
+    function safeMint(address to, string memory uri) private {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
+    }
+
+    // private helper function to get 1.82% percentage from event creators total sale
+    function getFeePercentage(uint256 _amount)
+        private
+        pure
+        returns (uint256, uint256)
+    {
+        uint256 eventListingFee = (_amount * 182) / 10000;
+        uint256 remainingBalance = _amount - eventListingFee;
+        return (eventListingFee, remainingBalance);
     }
 
     function _beforeTokenTransfer(
