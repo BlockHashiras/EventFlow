@@ -122,6 +122,7 @@ contract EventFlowTicket is
         returns (
             string memory,
             uint256,
+            string memory,
             uint256
         )
     {
@@ -136,7 +137,12 @@ contract EventFlowTicket is
         );
         payable(eventCreator).transfer(remainingBalance);
         payable(owner_).transfer(eventListingFee);
-        return ("amount sent", eventListingFee, remainingBalance);
+        return (
+            "Our fee:",
+            eventListingFee,
+            "Amount sent to event creator",
+            remainingBalance
+        );
     }
 
     function getOneEvent(uint256 _tokenId)
