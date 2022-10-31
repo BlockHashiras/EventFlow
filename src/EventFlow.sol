@@ -109,6 +109,27 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         safeMint(msg.sender, ticketURI);
     }
 
+    function getOneEvent(uint256 _tokenId)
+        public
+        view
+        returns (ListedEvent memory)
+    {
+        return idToListedEvent[_tokenId];
+    }
+
+    function getAllEvents() public view returns (ListedEvent[] memory) {
+        return allListedEvents;
+    }
+
+    //safe mint private function
+    //helper function that mints tickets to user on ticket purchase
+    function safeMint(address to, string memory uri) private {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+    }
+
     //function for event creators to withdraw amount gotten from their ticket sale
     function withdrawAmountFromTicketSale(uint256 _tokenId)
         public
@@ -138,27 +159,6 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         );
     }
 
-    function getOneEvent(uint256 _tokenId)
-        public
-        view
-        returns (ListedEvent memory)
-    {
-        return idToListedEvent[_tokenId];
-    }
-
-    function getAllEvents() public view returns (ListedEvent[] memory) {
-        return allListedEvents;
-    }
-
-    //safe mint private function
-    //helper function that mints tickets to user on ticket purchase
-    function safeMint(address to, string memory uri) private {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId, uri);
-    }
-
     // private helper function to get 1.82% percentage from event creators total sale
     function getFeePercentage(uint256 _amount)
         private
@@ -166,17 +166,17 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         returns (uint256, uint256)
     {
         uint256 eventListingFee = (_amount * 182) / 10000;
-        uint256 remainingBalance = _amount - eventListingFee;
-        return (eventListingFee, remainingBalance);
-    }
-
-    // function _beforeTokenTransfer(
+        uint25  // function _beforeTokenTransfer(
     //     address from,
     //     address to,
     //     uint256 tokenId
     // ) internal {
     //     super._beforeTokenTransfer(from, to, tokenId);
-    // }
+    // }6 remainingBalance = _amount - eventListingFee;
+        return (eventListingFee, remainingBalance);
+    }
+
+  
 
     function _burn(uint256 tokenId) internal override(ERC721URIStorage) {
         super._burn(tokenId);
