@@ -166,17 +166,17 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         returns (uint256, uint256)
     {
         uint256 eventListingFee = (_amount * 182) / 10000;
-        uint25  // function _beforeTokenTransfer(
+        uint256 remainingBalance = _amount - eventListingFee;
+        return (eventListingFee, remainingBalance);
+    }
+
+    // function _beforeTokenTransfer(
     //     address from,
     //     address to,
     //     uint256 tokenId
     // ) internal {
     //     super._beforeTokenTransfer(from, to, tokenId);
-    // }6 remainingBalance = _amount - eventListingFee;
-        return (eventListingFee, remainingBalance);
-    }
-
-  
+    // }
 
     function _burn(uint256 tokenId) internal override(ERC721URIStorage) {
         super._burn(tokenId);
