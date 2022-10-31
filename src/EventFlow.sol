@@ -149,8 +149,8 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         (uint256 eventListingFee, uint256 remainingBalance) = getFeePercentage(
             amount
         );
-        payable(eventCreator).transfer(remainingBalance);
         payable(owner_).transfer(eventListingFee);
+        payable(eventCreator).transfer(remainingBalance);
         return (
             "Our fee:",
             eventListingFee,
@@ -169,6 +169,8 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         uint256 remainingBalance = _amount - eventListingFee;
         return (eventListingFee, remainingBalance);
     }
+
+    // function deleteTicket()
 
     // function _beforeTokenTransfer(
     //     address from,
