@@ -1,5 +1,7 @@
 {
   "editor.tabCompletion": "on",
   "diffEditor.codeLens": true,
-  "solidity.defaultCompiler": "remote"
+  "solidity.defaultCompiler": "remote",
+  "slither.solcPath": "",
+  "slither.hiddenDetectors": []
 }

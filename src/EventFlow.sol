@@ -30,6 +30,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         uint256 EventDate;
         uint256 TicketPrice;
         uint256 NumberOfSale;
+        uint256 MaxSale;
         uint256 totalAmountGottenFromSale;
         bool isCurrentlyListed;
     }
@@ -51,7 +52,8 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         string memory eventLocation,
         string memory ticketURI,
         uint256 eventDate,
-        uint256 ticketPrice
+        uint256 ticketPrice,
+        uint256 maxAmountOfSale
     ) public returns (uint256) {
         uint256 tokenId = _tokenIdCounter.current();
         uint256 newEventDate = block.timestamp + (eventDate);
@@ -68,6 +70,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
             newEventDate,
             newTicketPrice,
             0,
+            maxAmountOfSale,
             0,
             true
         );
@@ -82,6 +85,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
                 eventDate,
                 newTicketPrice,
                 0,
+                maxAmountOfSale,
                 0,
                 true
             )
@@ -89,12 +93,18 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         return tokenId;
     }
 
+    //@dev this function let's users buy event tickets
     function buyEventTicket(uint256 _tokenId) public payable {
+        address seller = idToListedEvent[_tokenId].OwnerOfTicket;
+        uint256 maxCountOfSale = idToListedEvent[_tokenId].MaxSale;
         uint256 price = idToListedEvent[_tokenId].TicketPrice;
         uint256 eventDate = idToListedEvent[_tokenId].EventDate;
-        address seller = idToListedEvent[_tokenId].OwnerOfTicket;
+        uint256 numberOfSales = idToListedEvent[_tokenId].NumberOfSale;
         string memory ticketURI = idToListedEvent[_tokenId].TicketURI;
-
+        require(
+            numberOfSales < maxCountOfSale,
+            "Total supply of ticket reached"
+        );
         if (msg.value != price) {
             revert InvalidPurchasePrice(
                 "Error: Please submit the asking price in order to complete ticket purchase"
@@ -104,21 +114,47 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         require(block.timestamp < eventDate, "Error: Ticket expired");
         allListedEvents[_tokenId].NumberOfSale += 1;
         allListedEvents[_tokenId].totalAmountGottenFromSale += msg.value;
-        idToListedEvent[_tokenId].NumberOfSale += 1;
         idToListedEvent[_tokenId].totalAmountGottenFromSale += msg.value;
         safeMint(msg.sender, ticketURI);
     }
 
+    ///@dev this function gets one event provided the token id
     function getOneEvent(uint256 _tokenId)
         public
         view
         returns (ListedEvent memory)
     {
+        require(_tokenId <= _tokenIdCounter.current(), "Token does not exist");
         return idToListedEvent[_tokenId];
     }
 
     function getAllEvents() public view returns (ListedEvent[] memory) {
         return allListedEvents;
+    }
+
+    //@dev function to get event created by a user
+    function getMyEvents() external view returns (ListedEvent[] memory) {
+        ListedEvent[] memory totalEvents = new ListedEvent[](
+            allListedEvents.length
+        );
+        uint32 myItemCount;
+        uint32 currentIndex;
+
+        for (uint i; i < totalEvents.length; i++) {
+            if (idToListedEvent[i].OwnerOfTicket == msg.sender) {
+                myItemCount += 1;
+            }
+        }
+
+        ListedEvent[] memory myEvents = new ListedEvent[](myItemCount);
+
+        for (uint i; i < myEvents.length; i++) {
+            if (idToListedEvent[i].OwnerOfTicket == msg.sender) {
+                ListedEvent storage events = idToListedEvent[i];
+                myEvents[currentIndex] = events;
+                currentIndex += 1;
+            }
+        }
     }
 
     //safe mint private function
@@ -140,6 +176,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
             uint256
         )
     {
+        require(_tokenId <= _tokenIdCounter.current(), "Token does not exist");
         address eventCreator = idToListedEvent[_tokenId].OwnerOfTicket;
         uint256 amount = idToListedEvent[_tokenId].totalAmountGottenFromSale;
         require(eventCreator != address(0), "Error: Invalid Ticket");
