@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity 0.8.17;
 
 import "openzeppelin-contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-contracts/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -95,12 +95,19 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
 
     //@dev this function let's users buy event tickets
     function buyEventTicket(uint256 _tokenId) public payable {
+        require(_tokenId <= _tokenIdCounter.current(), "Token does not exist");
+
         address seller = idToListedEvent[_tokenId].OwnerOfTicket;
         uint256 maxCountOfSale = idToListedEvent[_tokenId].MaxSale;
         uint256 price = idToListedEvent[_tokenId].TicketPrice;
         uint256 eventDate = idToListedEvent[_tokenId].EventDate;
         uint256 numberOfSales = idToListedEvent[_tokenId].NumberOfSale;
         string memory ticketURI = idToListedEvent[_tokenId].TicketURI;
+
+        require(
+            idToListedEvent[_tokenId].isCurrentlyListed,
+            "Ticket sale ended"
+        );
         require(
             numberOfSales < maxCountOfSale,
             "Total supply of ticket reached"
@@ -140,7 +147,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         uint32 myItemCount;
         uint32 currentIndex;
 
-        for (uint i; i < totalEvents.length; i++) {
+        for (uint256 i; i < totalEvents.length; i++) {
             if (idToListedEvent[i].OwnerOfTicket == msg.sender) {
                 myItemCount += 1;
             }
@@ -148,7 +155,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
 
         ListedEvent[] memory myEvents = new ListedEvent[](myItemCount);
 
-        for (uint i; i < myEvents.length; i++) {
+        for (uint256 i; i < myEvents.length; i++) {
             if (idToListedEvent[i].OwnerOfTicket == msg.sender) {
                 ListedEvent storage events = idToListedEvent[i];
                 myEvents[currentIndex] = events;
@@ -157,16 +164,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         }
     }
 
-    //safe mint private function
-    //helper function that mints tickets to user on ticket purchase
-    function safeMint(address to, string memory uri) private {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId, uri);
-    }
-
-    //function for event creators to withdraw amount gotten from their ticket sale
+    /// @dev Function for event creators to withdraw amount gotten from their ticket sale
     function withdrawAmountFromTicketSale(uint256 _tokenId)
         public
         returns (
@@ -176,18 +174,29 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
             uint256
         )
     {
-        require(_tokenId <= _tokenIdCounter.current(), "Token does not exist");
         address eventCreator = idToListedEvent[_tokenId].OwnerOfTicket;
+        require(msg.sender == eventCreator, "Not event owner");
+
+        require(_tokenId <= _tokenIdCounter.current(), "Token does not exist");
+
+        require(
+            idToListedEvent[_tokenId].isCurrentlyListed,
+            "Ticket sale ended"
+        );
+        idToListedEvent[_tokenId].isCurrentlyListed = false;
+
         uint256 amount = idToListedEvent[_tokenId].totalAmountGottenFromSale;
         require(eventCreator != address(0), "Error: Invalid Ticket");
-        require(msg.sender == eventCreator, "Not event owner");
         require(amount > 0, "Error: No ticket sale yet, nothing to withdraw");
 
-        (uint256 eventListingFee, uint256 remainingBalance) = getFeePercentage(
-            amount
-        );
-        payable(owner_).transfer(eventListingFee);
-        payable(eventCreator).transfer(remainingBalance);
+        (uint256 eventListingFee, uint256 remainingBalance) = this
+            .getFeePercentage(amount);
+
+        (bool success, ) = payable(owner_).call{value: eventListingFee}("");
+        (bool tx, ) = payable(eventCreator).call{value: remainingBalance}("");
+
+        require(success, "Failed to send");
+        require(tx, "Failed to send");
         return (
             "Our fee:",
             eventListingFee,
@@ -196,12 +205,14 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         );
     }
 
-    // private helper function to get 1.82% percentage from event creators total sale
+    /// @dev Private helper function to get 1.82% percentage from event creators total sale
+
     function getFeePercentage(uint256 _amount)
-        private
-        pure
+        external
+        view
         returns (uint256, uint256)
     {
+        require(msg.sender == owner_, "Not owner");
         uint256 eventListingFee = (_amount * 182) / 10000;
         uint256 remainingBalance = _amount - eventListingFee;
         return (eventListingFee, remainingBalance);
@@ -209,13 +220,22 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
 
     // function deleteTicket()
 
-    // function _beforeTokenTransfer(
-    //     address from,
-    //     address to,
-    //     uint256 tokenId
-    // ) internal {
-    //     super._beforeTokenTransfer(from, to, tokenId);
-    // }
+    /* function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal {
+        super._beforeTokenTransfer(from, to, tokenId, "");
+    } */
+
+    //@dev safe mint private function
+    //helper function that mints tickets to user on ticket purchase
+    function safeMint(address to, string memory uri) private {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+    }
 
     function _burn(uint256 tokenId) internal override(ERC721URIStorage) {
         super._burn(tokenId);
