@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity ^0.8.9;
 
 import "openzeppelin-contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-contracts/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -14,6 +14,11 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
 
     //when another users executes sale based on ticket tokenID,
     // they pay ticket price if any and the ticket gets minted to them
+
+    error InvalidPurchasePrice(string);
+    error IncompleteWithdrawCriteria(string);
+
+
     address private owner_;
     using Counters for Counters.Counter;
 
@@ -24,7 +29,6 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
     struct ListedEvent {
         address OwnerOfTicket;
         string EventTitle;
-        string EventDescription;
         string EventLocation;
         string TicketURI;
         uint256 EventDate;
@@ -33,14 +37,14 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         uint256 MaxSale;
         uint256 totalAmountGottenFromSale;
         bool isCurrentlyListed;
+        uint256 CreateTokenID;
     }
 
     mapping(uint256 => ListedEvent) idToListedEvent;
 
     ListedEvent[] allListedEvents;
 
-    error InvalidPurchasePrice(string);
-    error IncompleteWithdrawCriteria(string);
+    mapping(address => ListedEvent[]) public eventPurchased;
 
     //create ticket
     //to add - pass in ticket owner as an argument so we can use
@@ -48,7 +52,6 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
     //optional - add button for ticket owner to delete ticket
     function createEvent(
         string memory eventTitle,
-        string memory eventDescription,
         string memory eventLocation,
         string memory ticketURI,
         uint256 eventDate,
@@ -58,13 +61,12 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         uint256 tokenId = _tokenIdCounter.current();
         uint256 newEventDate = block.timestamp + (eventDate);
         uint256 newTicketPrice = ticketPrice * 1 ether;
-        safeMint(msg.sender, ticketURI);
-        _transfer(msg.sender, address(this), tokenId);
+        _mint(address(this), tokenId);
+        _setTokenURI(tokenId, ticketURI);
 
         idToListedEvent[tokenId] = ListedEvent(
             msg.sender,
             eventTitle,
-            eventDescription,
             eventLocation,
             ticketURI,
             newEventDate,
@@ -72,14 +74,14 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
             0,
             maxAmountOfSale,
             0,
-            true
+            true,
+            tokenId
         );
 
         allListedEvents.push(
             ListedEvent(
                 msg.sender,
                 eventTitle,
-                eventDescription,
                 eventLocation,
                 ticketURI,
                 eventDate,
@@ -87,25 +89,29 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
                 0,
                 maxAmountOfSale,
                 0,
-                true
+                true,
+                tokenId
             )
         );
-        return tokenId;
     }
 
     //@dev this function let's users buy event tickets
     function buyEventTicket(uint256 _tokenId) public payable {
         require(_tokenId <= _tokenIdCounter.current(), "Token does not exist");
 
-        address seller = idToListedEvent[_tokenId].OwnerOfTicket;
-        uint256 maxCountOfSale = idToListedEvent[_tokenId].MaxSale;
-        uint256 price = idToListedEvent[_tokenId].TicketPrice;
-        uint256 eventDate = idToListedEvent[_tokenId].EventDate;
-        uint256 numberOfSales = idToListedEvent[_tokenId].NumberOfSale;
-        string memory ticketURI = idToListedEvent[_tokenId].TicketURI;
+        ListedEvent memory LE = idToListedEvent[_tokenId];
+
+        address seller = LE.OwnerOfTicket;
+        uint256 maxCountOfSale = LE.MaxSale;
+        uint256 price = LE.TicketPrice;
+        uint256 eventDate = LE.EventDate;
+        uint256 numberOfSales = LE.NumberOfSale;
+        string memory ticketURI = LE.TicketURI;
+        string memory eventTiitle = LE.EventTitle;
+        string memory eventLocation = LE.EventLocation;
 
         require(
-            idToListedEvent[_tokenId].isCurrentlyListed,
+            LE.isCurrentlyListed,
             "Ticket sale ended"
         );
         require(
@@ -121,8 +127,27 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         require(block.timestamp < eventDate, "Error: Ticket expired");
         allListedEvents[_tokenId].NumberOfSale += 1;
         allListedEvents[_tokenId].totalAmountGottenFromSale += msg.value;
-        idToListedEvent[_tokenId].totalAmountGottenFromSale += msg.value;
+        LE.totalAmountGottenFromSale += msg.value;
+
+
+
         safeMint(msg.sender, ticketURI);
+
+        eventPurchased[msg.sender].push(
+            ListedEvent(
+                msg.sender,
+                eventTitle,
+                eventLocation,
+                ticketURI,
+                eventDate,
+                newTicketPrice,
+                0,
+                maxAmountOfSale,
+                0,
+                true,
+                tokenId
+            )
+        );
     }
 
     ///@dev this function gets one event provided the token id
@@ -140,7 +165,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
     }
 
     //@dev function to get event created by a user
-    function getMyEvents() external view returns (ListedEvent[] memory) {
+    function getMyEvents() external view returns (ListedEvent[] memory myEvents) {
         ListedEvent[] memory totalEvents = new ListedEvent[](
             allListedEvents.length
         );
@@ -153,7 +178,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
             }
         }
 
-        ListedEvent[] memory myEvents = new ListedEvent[](myItemCount);
+        myEvents = new ListedEvent[](myItemCount);
 
         for (uint256 i; i < myEvents.length; i++) {
             if (idToListedEvent[i].OwnerOfTicket == msg.sender) {
@@ -162,6 +187,8 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
                 currentIndex += 1;
             }
         }
+
+        myEvents;
     }
 
     /// @dev Function for event creators to withdraw amount gotten from their ticket sale
@@ -193,10 +220,10 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
             .getFeePercentage(amount);
 
         (bool success, ) = payable(owner_).call{value: eventListingFee}("");
-        (bool tx, ) = payable(eventCreator).call{value: remainingBalance}("");
+        (bool t, ) = payable(eventCreator).call{value: remainingBalance}("");
 
         require(success, "Failed to send");
-        require(tx, "Failed to send");
+        require(t, "Failed to send");
         return (
             "Our fee:",
             eventListingFee,
