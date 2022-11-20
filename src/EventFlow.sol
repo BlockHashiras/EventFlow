@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity 0.8.9;
 
 import "openzeppelin-contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-contracts/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -57,7 +57,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         uint256 eventDate,
         uint256 ticketPrice,
         uint256 maxAmountOfSale
-    ) public returns (uint256) {
+    ) public {
         uint256 tokenId = _tokenIdCounter.current();
         uint256 newEventDate = block.timestamp + (eventDate);
         uint256 newTicketPrice = ticketPrice * 1 ether;
@@ -106,8 +106,9 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         uint256 price = LE.TicketPrice;
         uint256 eventDate = LE.EventDate;
         uint256 numberOfSales = LE.NumberOfSale;
+        uint256 newTicketPrice = LE.TicketPrice;
         string memory ticketURI = LE.TicketURI;
-        string memory eventTiitle = LE.EventTitle;
+        string memory eventTitle = LE.EventTitle;
         string memory eventLocation = LE.EventLocation;
 
         require(
@@ -142,10 +143,10 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
                 eventDate,
                 newTicketPrice,
                 0,
-                maxAmountOfSale,
+                maxCountOfSale,
                 0,
                 true,
-                tokenId
+                _tokenId
             )
         );
     }
