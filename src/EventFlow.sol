@@ -278,7 +278,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         return super.tokenURI(tokenId);
     }
 
-    function checkPurchase(address _addr) external view returns(ListedEvent[]){
+    function checkPurchase(address _addr) external view returns(ListedEvent[] memory){
         return eventPurchased[_addr];
     }
 
