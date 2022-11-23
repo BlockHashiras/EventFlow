@@ -44,7 +44,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
 
     ListedEvent[] allListedEvents;
 
-    mapping(address => ListedEvent[]) public eventPurchased;
+    mapping(address => ListedEvent[]) eventPurchased;
 
     //create ticket
     //to add - pass in ticket owner as an argument so we can use
@@ -278,6 +278,10 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         return super.tokenURI(tokenId);
     }
 
+    function checkPurchase(address _addr) external view returns(ListedEvent[]){
+        return eventPurchased[_addr];
+    }
+
     function supportsInterface(bytes4 interfaceId)
         public
         view
@@ -287,3 +291,6 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
         return super.supportsInterface(interfaceId);
     }
 }
+
+// Deployed contract: 0xA87F30B7CD469D65B08bb74f669821259AfD0e7d
+
