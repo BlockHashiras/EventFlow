@@ -16,7 +16,7 @@ Checkout the EventFlowTicket contract [here](https://github.com/BlockHashiras/Ev
 ## Summary of the EventFlowTicket Contract Functions
 
 ### createEvent
-This function is responsible for creating event tickets for a particular event, the event creator provides the ticket image, event title, event location, event date and time, ticket quantty and event price. Event price is 0 if creator want the event attendance to be free.
+This function is responsible for creating event tickets for a particular event, the event creator provides the ticket image, event title, event location, event date and time, ticket quantity and event price. Event price is 0 if creator want the event attendance to be free.
 
 ### buyEventTicket
 This functions lets event attendees to purchase event ticket for a particular event, which automatically gives them pass to attend the event, when users buys a ticket for a particular event they automatically owns that event ticket as an NFT asset, minted to their account.
