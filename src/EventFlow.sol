@@ -166,14 +166,14 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
     }
 
     //@dev function to get event created by a user
-    function getMyEvents() external view returns (ListedEvent[] memory myEvents) {
+    function getMyEvents() external view returns (ListedEvent[] memory) {
         ListedEvent[] memory totalEvents = new ListedEvent[](
             allListedEvents.length
         );
         uint32 myItemCount;
         uint32 currentIndex;
 
-        for (uint256 i; i < totalEvents.length; i++) {
+        for (uint256 i; i < allListedEvents.length; i++) {
             if (idToListedEvent[i].OwnerOfTicket == msg.sender) {
                 myItemCount += 1;
             }
@@ -189,7 +189,7 @@ contract EventFlowTicket is ERC721URIStorage, Ownable {
             }
         }
 
-        myEvents;
+      return myEvents;
     }
 
     /// @dev Function for event creators to withdraw amount gotten from their ticket sale
